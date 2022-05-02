@@ -11,11 +11,11 @@ var items = {};
 exports.create = (text, callback) => {
   counter.getNextUniqueId((err, counterString) => {
     if (err) {
-      throw ('error');
+      callback(err);
     } else {
       fs.writeFile(path.join(exports.dataDir, counterString + '.txt'), text, (error) => {
         if (error) {
-          throw ('error creating file');
+          callback(error);
         } else {
           callback(null, {id: counterString, text});
         }
@@ -28,7 +28,7 @@ exports.readAll = (callback) => {
 
   fs.readdir(exports.dataDir, (err, files) => {
     if (err) {
-      throw ('error');
+      callback(err);
     } else {
       var data = _.map(files, (file) => {
         let id = path.basename(file, '.txt');
@@ -40,12 +40,14 @@ exports.readAll = (callback) => {
 };
 
 exports.readOne = (id, callback) => {
-  var text = items[id];
-  if (!text) {
-    callback(new Error(`No item with id: ${id}`));
-  } else {
-    callback(null, { id, text });
-  }
+
+  fs.readFile(path.join(exports.dataDir, id + '.txt'), (err, data) => {
+    if (err) {
+      callback(err);
+    } else {
+      callback(null, { id, text: data.toString() });
+    }
+  });
 };
 
 exports.update = (id, text, callback) => {
