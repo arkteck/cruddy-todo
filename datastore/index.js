@@ -5,12 +5,23 @@ const counter = require('./counter');
 
 var items = {};
 
+
 // Public API - Fix these CRUD functions ///////////////////////////////////////
 
 exports.create = (text, callback) => {
-  var id = counter.getNextUniqueId();
-  items[id] = text;
-  callback(null, { id, text });
+  counter.getNextUniqueId((err, counterString) => {
+    if (err) {
+      throw ('error');
+    } else {
+      fs.writeFile(path.join(exports.dataDir, counterString + '.txt'), text, (error) => {
+        if (error) {
+          throw ('error creating file');
+        } else {
+          callback(null, {id: counterString, text});
+        }
+      });
+    }
+  });
 };
 
 exports.readAll = (callback) => {
