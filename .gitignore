@@ -1,4 +1,5 @@
 datastore/data/*
+datastore/time/*
 datastore/counter.txt
 test/testData
 
