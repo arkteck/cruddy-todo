@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const _ = require('underscore');
 const counter = require('./counter');
+const Promise = require('bluebird');
 
 var items = {};
 
@@ -30,48 +31,28 @@ exports.readAll = (callback) => {
     if (err) {
       callback(err);
     } else {
-
-      // files is array of filenames
-      // for each file, we would have a fs.readfile(file)
-      // promisify that fs.readfile(file)
-      // push that to an array of promises
-      // Promise.all(array of promises)
-
-      var promisify = (asyncFn) => {
-        return (...args) => (new Promise((resolve, reject) => {
-          asyncFn(...args, (err, ...data) => {
+      var readFile = (filePath) => {
+        return new Promise((resolve, reject) => {
+          fs.readFile(filePath, (err, data) => {
             if (err) {
-              reject(err);
+              reject (err);
             } else {
-              resolve(data);
+              resolve({id: path.basename(filePath, '.txt'), text: data.toString()});
             }
           });
-        }));
+        });
       };
-      var promiseArr = [];
-      files.forEach((file) => {
-        var promiseFunc = promisify(() => {
-          fs.readFile(path.join(exports.dataDir, file), (err, data) => {
-            if (err) {
-              throw 'error';
-            } else {
-              return { id, text: data.toString() };
-            }
-          });
-        });
-        promiseArr.push(promiseFunc);
+      var promArr = [];
+      files.forEach(file => {
+        promArr.push(readFile(path.join(exports.dataDir, file)));
       });
-
-      console.log(promiseArr);
-      Promise.all(promiseArr)
-        .then((allData) => {
-          console.log(allData);
-          callback(null, allData);
+      Promise.all(promArr)
+        .then((data) => {
+          callback(null, data);
         })
-        .catch((err) => {
-          callback(err);
+        .catch((error) => {
+          callback(error);
         });
-
     }
   });
 };
