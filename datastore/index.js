@@ -30,11 +30,48 @@ exports.readAll = (callback) => {
     if (err) {
       callback(err);
     } else {
-      var data = _.map(files, (file) => {
-        let id = path.basename(file, '.txt');
-        return { id, text: id };
+
+      // files is array of filenames
+      // for each file, we would have a fs.readfile(file)
+      // promisify that fs.readfile(file)
+      // push that to an array of promises
+      // Promise.all(array of promises)
+
+      var promisify = (asyncFn) => {
+        return (...args) => (new Promise((resolve, reject) => {
+          asyncFn(...args, (err, ...data) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(data);
+            }
+          });
+        }));
+      };
+      var promiseArr = [];
+      files.forEach((file) => {
+        var promiseFunc = promisify(() => {
+          fs.readFile(path.join(exports.dataDir, file), (err, data) => {
+            if (err) {
+              throw 'error';
+            } else {
+              return { id, text: data.toString() };
+            }
+          });
+        });
+        promiseArr.push(promiseFunc);
       });
-      callback(null, data);
+
+      console.log(promiseArr);
+      Promise.all(promiseArr)
+        .then((allData) => {
+          console.log(allData);
+          callback(null, allData);
+        })
+        .catch((err) => {
+          callback(err);
+        });
+
     }
   });
 };
