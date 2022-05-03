@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const sprintf = require('sprintf-js').sprintf;
+const Promise = require('bluebird');
 
 var counter = 0;
 
@@ -15,7 +16,8 @@ const zeroPaddedNumber = (num) => {
   return sprintf('%05d', num);
 };
 
-const readCounter = (callback) => {
+const readCounter = Promise.promisify((callback) => {
+
   fs.readFile(exports.counterFile, (err, fileData) => {
     if (err) {
       callback(null, 0);
@@ -23,9 +25,10 @@ const readCounter = (callback) => {
       callback(null, Number(fileData));
     }
   });
-};
+});
 
-const writeCounter = (count, callback) => {
+const writeCounter = Promise.promisify((count, callback) => {
+
   var counterString = zeroPaddedNumber(count);
   fs.writeFile(exports.counterFile, counterString, (err) => {
     if (err) {
@@ -34,7 +37,7 @@ const writeCounter = (count, callback) => {
       callback(null, counterString);
     }
   });
-};
+});
 
 // Public API - Fix this function //////////////////////////////////////////////
 

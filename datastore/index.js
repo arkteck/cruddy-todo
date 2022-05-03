@@ -9,7 +9,8 @@ var items = {};
 
 // Public API - Fix these CRUD functions ///////////////////////////////////////
 
-exports.create = (text, callback) => {
+exports.create = Promise.promisify((text, callback) => {
+
   counter.getNextUniqueId((err, counterString) => {
     if (err) {
       callback(err);
@@ -18,12 +19,20 @@ exports.create = (text, callback) => {
         if (error) {
           callback(error);
         } else {
-          callback(null, {id: counterString, text});
+          var createTime = Date().toString();
+          var updateTime = Date().toString();
+          fs.writeFile(path.join(exports.timeDir, counterString + '.txt'), `${createTime}\n${updateTime}`, (error) => {
+            if (error) {
+              callback(error);
+            } else {
+              callback(null, {id: counterString, text, createTime, updateTime});
+            }
+          });
         }
       });
     }
   });
-};
+});
 
 exports.readAll = (callback) => {
 
@@ -57,7 +66,7 @@ exports.readAll = (callback) => {
   });
 };
 
-exports.readOne = (id, callback) => {
+exports.readOne = Promise.promisify((id, callback) => {
 
   fs.readFile(path.join(exports.dataDir, id + '.txt'), (err, data) => {
     if (err) {
@@ -66,9 +75,9 @@ exports.readOne = (id, callback) => {
       callback(null, { id, text: data.toString() });
     }
   });
-};
+});
 
-exports.update = (id, text, callback) => {
+exports.update = Promise.promisify((id, text, callback) => {
 
   fs.exists(path.join(exports.dataDir, id + '.txt'), (exists) => {
     if (!exists) {
@@ -78,31 +87,52 @@ exports.update = (id, text, callback) => {
         if (err) {
           callback(err);
         } else {
-          callback(null, {id, text});
+          fs.readFile(path.join(exports.timeDir, id + '.txt'), (err, data) => {
+            if (err) {
+              callback(err);
+            } else {
+              data = data.toString().split('\n');
+              var createTime = data[0];
+              var updateTime = Date().toString();
+              fs.writeFile(path.join(exports.timeDir, id + '.txt'), `${createTime}\n${updateTime}`, (err) => {
+                if (err) {
+                  callback(err);
+                } else {
+                  callback(null, {id, text, createTime, updateTime});
+                }
+              });
+            }
+          });
         }
       });
 
     }
   });
 
-};
+});
 
-exports.delete = (id, callback) => {
+exports.delete = Promise.promisify((id, callback) => {
 
   fs.rm(path.join(exports.dataDir, id + '.txt'), (err) => {
     if (err) {
       callback(err);
     } else {
-      callback();
+      fs.rm(path.join(exports.timeDir, id + '.txt'), (err) => {
+        if (err) {
+          callback(err);
+        } else {
+          callback();
+        }
+      });
     }
   });
 
-};
+});
 
 // Config+Initialization code -- DO NOT MODIFY /////////////////////////////////
 
 exports.dataDir = path.join(__dirname, 'data');
-
+exports.timeDir = path.join(__dirname, 'time');
 exports.initialize = () => {
   if (!fs.existsSync(exports.dataDir)) {
     fs.mkdirSync(exports.dataDir);
